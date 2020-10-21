@@ -21,11 +21,15 @@ import android.app.ListActivity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
+import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanResult;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.annotation.RequiresApi;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -42,6 +46,7 @@ import java.util.ArrayList;
 /**
  * Activity for scanning and displaying available Bluetooth LE devices.
  */
+// ListActivity를 상속 받아 리스트를 보여주기 때문에 xml에 listview가 따로 없다. 신기 방기
 public class DeviceScanActivity extends ListActivity {
     private LeDeviceListAdapter mLeDeviceListAdapter;
     private BluetoothAdapter mBluetoothAdapter;
@@ -89,7 +94,7 @@ public class DeviceScanActivity extends ListActivity {
         } else {
             menu.findItem(R.id.menu_stop).setVisible(true);
             menu.findItem(R.id.menu_scan).setVisible(false);
-            menu.findItem(R.id.menu_refresh).setActionView(
+            menu.findItem(R.id.menu_refresh_scan).setActionView(
                     R.layout.actionbar_indeterminate_progress);
         }
         return true;
@@ -104,6 +109,11 @@ public class DeviceScanActivity extends ListActivity {
                 break;
             case R.id.menu_stop:
                 scanLeDevice(false);
+                break;
+            case R.id.menu_refresh_scan:
+                mLeDeviceListAdapter.clear();
+                mLeDeviceListAdapter.notifyDataSetChanged();
+                scanLeDevice(true);
                 break;
         }
         return true;
@@ -143,11 +153,13 @@ public class DeviceScanActivity extends ListActivity {
         mLeDeviceListAdapter.clear();
     }
 
+    // ListActivity를 상속 받아서 아이템 클릭했을때 발동하는 콜백메소드가 오버라이딩 되어 있다.
     @Override
     protected void onListItemClick(ListView l, View v, int position, long id) {
         final BluetoothDevice device = mLeDeviceListAdapter.getDevice(position);
         if (device == null) return;
         final Intent intent = new Intent(this, DeviceControlActivity.class);
+        // EXTRAS_DEVIVCE_NAME 변수명에 데이터값 device.getName()을 넣어서 인텐트에 실는다.
         intent.putExtra(DeviceControlActivity.EXTRAS_DEVICE_NAME, device.getName());
         intent.putExtra(DeviceControlActivity.EXTRAS_DEVICE_ADDRESS, device.getAddress());
         if (mScanning) {
@@ -157,26 +169,98 @@ public class DeviceScanActivity extends ListActivity {
         startActivity(intent);
     }
 
-    private void scanLeDevice(final boolean enable) {
-        if (enable) {
-            // Stops scanning after a pre-defined scan period.
-            mHandler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    mScanning = false;
-                    mBluetoothAdapter.stopLeScan(mLeScanCallback);
-                    invalidateOptionsMenu();
-                }
-            }, SCAN_PERIOD);
+//    private void scanLeDevice(final boolean enable) {
+//        if (enable) {
+//            // Stops scanning after a pre-defined scan period.
+//            mHandler.postDelayed(new Runnable() {
+//                @Override
+//                public void run() {
+//                    mScanning = false;
+//                    mBluetoothAdapter.stopLeScan(mLeScanCallback);
+//                    invalidateOptionsMenu();
+//                }
+//            }, SCAN_PERIOD);
+//
+//            mScanning = true;
+//            mBluetoothAdapter.startLeScan(mLeScanCallback);
+//        } else {
+//            mScanning = false;
+//            mBluetoothAdapter.stopLeScan(mLeScanCallback);
+//        }
+//        invalidateOptionsMenu();
+//    }
+private void scanLeDevice(final boolean enable){
+    if (enable) {
+        // Scan_period 값 만큼 시간이 지나면 스캐닝 중지
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                mScanning = false;
+                stopScanBLE();
+            }
+        }, 10000);
 
-            mScanning = true;
+        mScanning = true;
+        startScanBLE();
+    }else {
+        mScanning = false;
+        stopScanBLE();
+    }
+}
+
+    // BLE 스캔시작
+    private void startScanBLE(){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+        {
+            mBluetoothAdapter.getBluetoothLeScanner().startScan(mScanCallback);
+        }
+        else
+        {
             mBluetoothAdapter.startLeScan(mLeScanCallback);
-        } else {
-            mScanning = false;
+        }
+    }
+
+    // BLE 스캔중지
+    private void stopScanBLE(){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+        {
+            mBluetoothAdapter.getBluetoothLeScanner().stopScan(mScanCallback);
+        }
+        else
+        {
             mBluetoothAdapter.stopLeScan(mLeScanCallback);
         }
-        invalidateOptionsMenu();
     }
+
+    // BLE 기기가 스캔되면 호출. 롤리팝 이하 버전
+    private BluetoothAdapter.LeScanCallback mLeScanCallback = new BluetoothAdapter.LeScanCallback() {
+
+        @Override
+        public void onLeScan(final BluetoothDevice device, int rssi, byte[] scanRecord) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    mLeDeviceListAdapter.addDevice(device);
+                    mLeDeviceListAdapter.notifyDataSetChanged();
+                    Log.e("mLeScanCallback의 device",device+"");
+                }
+            });
+        }
+    };
+
+    // BLE 기기가 스캔되면 호출. 롤리팝 이상 버전
+    private ScanCallback mScanCallback = new ScanCallback() {
+        @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+        @Override
+        public void onScanResult(int callbackType, ScanResult result) {
+            super.onScanResult(callbackType, result);
+            Log.e("ScanCallback", "진입");
+            BluetoothDevice device = result.getDevice();
+            mLeDeviceListAdapter.addDevice(device);
+            mLeDeviceListAdapter.notifyDataSetChanged();
+            Log.e("ScanCallback의 device",device+"");
+        }
+    };
 
     // Adapter for holding devices found through scanning.
     private class LeDeviceListAdapter extends BaseAdapter {
@@ -245,20 +329,20 @@ public class DeviceScanActivity extends ListActivity {
     }
 
     // Device scan callback.
-    private BluetoothAdapter.LeScanCallback mLeScanCallback =
-            new BluetoothAdapter.LeScanCallback() {
-
-        @Override
-        public void onLeScan(final BluetoothDevice device, int rssi, byte[] scanRecord) {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    mLeDeviceListAdapter.addDevice(device);
-                    mLeDeviceListAdapter.notifyDataSetChanged();
-                }
-            });
-        }
-    };
+//    private BluetoothAdapter.LeScanCallback mLeScanCallback =
+//            new BluetoothAdapter.LeScanCallback() {
+//
+//        @Override
+//        public void onLeScan(final BluetoothDevice device, int rssi, byte[] scanRecord) {
+//            runOnUiThread(new Runnable() {
+//                @Override
+//                public void run() {
+//                    mLeDeviceListAdapter.addDevice(device);
+//                    mLeDeviceListAdapter.notifyDataSetChanged();
+//                }
+//            });
+//        }
+//    };
 
     static class ViewHolder {
         TextView deviceName;

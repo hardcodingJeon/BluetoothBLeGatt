@@ -91,6 +91,7 @@ public class DeviceControlActivity extends Activity {
     // ACTION_GATT_SERVICES_DISCOVERED: discovered GATT services.
     // ACTION_DATA_AVAILABLE: received data from the device.  This can be a result of read
     //                        or notification operations.
+    // todo : manifest에 리시버 등록 안되있던데? 리시버는 등록 안하는듯?
     private final BroadcastReceiver mGattUpdateReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -148,6 +149,7 @@ public class DeviceControlActivity extends Activity {
     };
 
     private void clearUI() {
+        // ExpandableListView clear
         mGattServicesList.setAdapter((SimpleExpandableListAdapter) null);
         mDataField.setText(R.string.no_data);
     }
@@ -158,6 +160,7 @@ public class DeviceControlActivity extends Activity {
         setContentView(R.layout.gatt_services_characteristics);
 
         final Intent intent = getIntent();
+        // DeviceScanActivity.java에서 EXTRAS_DEVICE_NAME이 안넘어왔을경우 DeviceControlActivity의 멤버변수 EXTRAS_DEVICE_NAME의 값이 mDeviceName에 대입된다.
         mDeviceName = intent.getStringExtra(EXTRAS_DEVICE_NAME);
         mDeviceAddress = intent.getStringExtra(EXTRAS_DEVICE_ADDRESS);
 
@@ -171,6 +174,7 @@ public class DeviceControlActivity extends Activity {
         getActionBar().setTitle(mDeviceName);
         getActionBar().setDisplayHomeAsUpEnabled(true);
         Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
+        // 서비스는 마치 클라이언트-서버 와 같이 동작합니다. 서비스가 서버 역할을 하는 겁니다. 액티비티는 서비스에 어떠한 요청을 할수 있고, 서비스로부터 어떠한 결과를 받을수 있습니다.
         bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
     }
 
