@@ -16,6 +16,7 @@
 
 package com.example.android.bluetoothlegatt;
 
+import android.app.AlertDialog;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -34,6 +35,8 @@ import android.util.Log;
 
 import java.util.List;
 import java.util.UUID;
+
+import static android.app.AlertDialog.*;
 
 /**
  * Service for managing connection and data communication with a GATT server hosted on a
@@ -99,15 +102,20 @@ public class BluetoothLeService extends Service {
             }
         }
 
+        // 서비스안의 특성을 읽었을때 호출됨
         @Override
         public void onCharacteristicRead(BluetoothGatt gatt,
                                          BluetoothGattCharacteristic characteristic,
                                          int status) {
+            Log.e("response","진입");
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+                Log.e("response",characteristic.getValue().toString());
+                new AlertDialog.Builder(BluetoothLeService.this).setTitle(characteristic.getValue().toString()).create().show();
             }
         }
 
+        // 서비스안의 특성 값이 바뀔때 호출됨
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt,
                                             BluetoothGattCharacteristic characteristic) {
@@ -282,6 +290,7 @@ public class BluetoothLeService extends Service {
             return;
         }
         mBluetoothGatt.readCharacteristic(characteristic);
+
     }
 
     // write 기능 메소드 추가 부분

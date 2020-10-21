@@ -153,6 +153,9 @@ public class DeviceControlActivity extends Activity {
                             mBluetoothLeService.setCharacteristicNotification(
                                     characteristic, true);
                             mBluetoothLeService.write(characteristic);
+
+                            // 보내고 읽어 보기
+                            mBluetoothLeService.readCharacteristic(characteristic);
                         }
                         return true;
                     }
