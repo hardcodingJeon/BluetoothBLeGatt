@@ -89,6 +89,7 @@ public class BluetoothLeService extends Service {
             }
         }
 
+        // 연결된 BLE장치에서 GATT서비스들이 발견되면 호출
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
@@ -234,6 +235,7 @@ public class BluetoothLeService extends Service {
         }
         // We want to directly connect to the device, so we are setting the autoConnect
         // parameter to false.
+        // 여기서 디바이스와 연결시도
         mBluetoothGatt = device.connectGatt(this, false, mGattCallback);
         Log.d(TAG, "Trying to create a new connection.");
         mBluetoothDeviceAddress = address;
@@ -280,6 +282,28 @@ public class BluetoothLeService extends Service {
             return;
         }
         mBluetoothGatt.readCharacteristic(characteristic);
+    }
+
+    // write 기능 메소드 추가 부분
+    public void write(BluetoothGattCharacteristic characteristic){
+        if (mBluetoothAdapter == null || mBluetoothGatt == null){
+            Log.e(TAG, "BluetoothAdapter not initialized");
+            return;
+        }
+        Log.e("write","진입");
+
+        // 모터가 동작한다.
+        characteristic.setValue("&fopen");
+
+        // 알람이 울린다.
+//        characteristic.setValue("&beep,300,100,5&");
+
+        characteristic.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
+        
+        // .writeCharacteristic()에서 전송되는듯
+        boolean result = mBluetoothGatt.writeCharacteristic(characteristic);
+        Log.e("result",result+"");
+        return;
     }
 
     /**

@@ -128,6 +128,7 @@ public class DeviceControlActivity extends Activity {
                                 mGattCharacteristics.get(groupPosition).get(childPosition);
                         final int charaProp = characteristic.getProperties();
                         if ((charaProp | BluetoothGattCharacteristic.PROPERTY_READ) > 0) {
+                            Log.e("control read","진입");
                             // If there is an active notification on a characteristic, clear
                             // it first so it doesn't update the data field on the user interface.
                             if (mNotifyCharacteristic != null) {
@@ -138,9 +139,20 @@ public class DeviceControlActivity extends Activity {
                             mBluetoothLeService.readCharacteristic(characteristic);
                         }
                         if ((charaProp | BluetoothGattCharacteristic.PROPERTY_NOTIFY) > 0) {
+                            Log.e("control notify","진입");
                             mNotifyCharacteristic = characteristic;
+                            // 이게 notification 활성화 설정 같은데 write는 어디서 하는거지?
                             mBluetoothLeService.setCharacteristicNotification(
                                     characteristic, true);
+                        }
+                        if ((charaProp | BluetoothGattCharacteristic.PROPERTY_WRITE)>0){
+                            Log.e("control write","진입");
+                            mNotifyCharacteristic = characteristic;
+
+                            // 이게 notification 활성화 설정 같은데 write는 어디서 하는거지?
+                            mBluetoothLeService.setCharacteristicNotification(
+                                    characteristic, true);
+                            mBluetoothLeService.write(characteristic);
                         }
                         return true;
                     }
@@ -175,6 +187,7 @@ public class DeviceControlActivity extends Activity {
         getActionBar().setDisplayHomeAsUpEnabled(true);
         Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
         // 서비스는 마치 클라이언트-서버 와 같이 동작합니다. 서비스가 서버 역할을 하는 겁니다. 액티비티는 서비스에 어떠한 요청을 할수 있고, 서비스로부터 어떠한 결과를 받을수 있습니다.
+        // bindService()로 서비스를 연결하면 BluetoothLeService.class의 onBind()함수가 발동한다.
         bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
     }
 
@@ -246,7 +259,7 @@ public class DeviceControlActivity extends Activity {
     }
 
     // Demonstrates how to iterate through the supported GATT Services/Characteristics.
-    // In this sample, we populate the data structure that is bound to the ExpandableListView
+    // In this sample, we populate th data structure that is bound to the ExpandableListView
     // on the UI.
     private void displayGattServices(List<BluetoothGattService> gattServices) {
         if (gattServices == null) return;
