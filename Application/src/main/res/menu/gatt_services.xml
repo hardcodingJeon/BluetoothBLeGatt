@@ -28,4 +28,7 @@
           android:title="@string/menu_disconnect"
           android:orderInCategory="101"
         app:showAsAction="ifRoom|withText" />
+    <item android:id="@+id/noti"
+        android:title="notification"
+        app:showAsAction="ifRoom"/>
 </menu>
