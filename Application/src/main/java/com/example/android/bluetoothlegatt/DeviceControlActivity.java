@@ -150,8 +150,8 @@ public class DeviceControlActivity extends Activity {
                             Log.e("control write","진입");
                             mNotifyCharacteristic = characteristic;
 
-                            // 이게 notification 활성화 설정 같은데 write는 어디서 하는거지?
-
+                            // .setCharacteristicNotification()을 .write()와 다른 곳에서 실행하니까 정상 작동되었다. OptionMenu에서 실행 시켰음
+                            //mBluetoothLeService.setCharacteristicNotification(noti, true);
                             mBluetoothLeService.write(characteristic);
 
 
